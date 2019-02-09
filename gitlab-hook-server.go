@@ -140,7 +140,7 @@ func Post(target string, payload string) (int, string) {
 
 	// Build request
 	req, err = http.NewRequest("POST", target, bytes.NewBufferString(payload))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/json")
 
 	// Do request
 	client := &http.Client{}
@@ -302,6 +302,54 @@ RedirectBreak:
 }
 
 /*
+	Send a message on Slack
+
+	@param channel : Targeted channel (without the #)
+*/
+func SendWorkchatMessage(thread_key, message string) {
+	// Variables
+	var payload string // POST data sent to slack
+	// var icon string    // Slack emoji
+
+	// toLower(channel)
+	l.Silly("toLower =", thread_key)
+	thread_key = strings.ToLower(thread_key)
+	l.Silly("toLower =", thread_key)
+
+	// Redirect channel
+	l.Silly("RedirectBreak =", thread_key)
+RedirectBreak:
+	for _, redirect := range Redirect {
+		for _, repo := range redirect.Repositories {
+			if thread_key == repo {
+				l.Silly("RedirectBreakSet", thread_key, "=", redirect.Channel)
+				thread_key = redirect.Channel
+				break RedirectBreak
+			}
+		}
+	}
+	l.Silly("RedirectBreak =", thread_key)
+
+	// POST Payload formating
+	payload = `{"recipient": { "thread_key": "` + strings.ToLower(thread_key) + `"} , "message": { "text": "` + message + `"}}`
+
+	// Debug information
+	if Verbose {
+		l.Debug("payload =", payload)
+	}
+
+	code, body := Post(SlackAPIUrl, payload)
+	if code != 200 {
+		l.Error("Error post, Slack API returned:", body)
+	}
+
+	// Debug information
+	if Verbose {
+		l.Debug("Slack API returned:", body)
+	}
+}
+
+/*
 	Handler function to handle http requests for push
 
 	@param w http.ResponseWriter
@@ -360,7 +408,7 @@ func (s *PushServ) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			message += "Last commit : <" + lastCommit.Url + "|" + lastCommit.Id + "> :" + n                                                                  // Second line
 			message += "```" + MessageEncode(lastCommit.Message) + "```"                                                                                     // Third line (last commit message)
 		}
-		SendSlackMessage(j.Repository.Name, message, Push)
+		SendWorkchatMessage(j.Repository.Name, message)
 	}
 }
 
@@ -487,7 +535,7 @@ func main() {
 	l.AddTransport(logo.Console).AddColor(logo.ConsoleColor) // Configure Logger
 	l.EnableAllLevels()                                      // Configure Logger
 	LoadConf()                                               // Load configuration
-	SendSlackMessage(BotChannel, BotStartMessage, Bot)       // Slack notification
+	SendWorkchatMessage(BotChannel, BotStartMessage)       // Slack notification
 	l.Info(BotStartMessage)                                  // Logging
 	go http.ListenAndServe(":8100", &PushServ{})             // Run HTTP server for push hook
 	go http.ListenAndServe(":8200", &MergeServ{})            // Run HTTP server for merge request hook
