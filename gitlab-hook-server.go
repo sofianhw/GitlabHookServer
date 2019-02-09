@@ -45,7 +45,7 @@ var (
 
 	// Misc
 	currentBuildID float64 = 0      // Current build ID
-	n              string  = "\n" // Encoded line return
+	n              string  = " %5CnX " // Encoded line return
 )
 
 /*
@@ -202,24 +202,29 @@ func CreateSlackChannel(chanName string) {
 
 	@param origin Git message to encode
 */
+
+func MessageEncodeX(origin string) string {
+	var result string = ""
+
+	for _, e := range strings.Split(origin, "%5CnX") {
+		result += e + "\n"
+	}
+	return result
+}
+
 func MessageEncode(origin string) string {
 	var result string = ""
 
 	for _, e := range strings.Split(origin, "") {
 		switch e {
 		case "\n":
-			result += " "
-		case "+":
-			result += " "
-		case "\"":
-			result += "''"
+			result += ""
 		case "&":
 			result += " and "
 		default:
 			result += e
 		}
 	}
-
 	return result
 }
 
@@ -335,10 +340,10 @@ RedirectBreak:
 
 	// Debug information
 	if Verbose {
-		l.Debug("payload =", payload)
+		l.Debug("payload =", MessageEncodeX(payload))
 	}
 
-	code, body := Post(SlackAPIUrl, payload)
+	code, body := Post(SlackAPIUrl, MessageEncodeX(payload))
 	if code != 200 {
 		l.Error("Error post, Slack API returned:", body)
 	}
@@ -398,7 +403,7 @@ func (s *PushServ) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		commitCount := strconv.FormatFloat(j.Total_commits_count, 'f', 0, 64)
 		if ShowAllCommits {
 			message += "Push on *" + j.Repository.Name + "* by *" + j.User_name + "* at *" + dateString + "* on branch *" + j.Ref + "*:" + n // First line
-			message += commitCount + "commits :" + n // Second line
+			message += commitCount + " commits :" + n // Second line
 			for i := range j.Commits {
 				c := j.Commits[i]
 				message += "< " + c.Url + " | " + c.Id[0:7] + " >: " + "_" + MessageEncode(c.Message) + "_" + n
@@ -407,6 +412,9 @@ func (s *PushServ) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			message += "[PUSH] " + n + "Push on *" + j.Repository.Name + "* by *" + j.User_name + "* at *" + dateString + "* on branch *" + j.Ref + "*:" + n // First line
 			message += "Last commit : < " + lastCommit.Url + " | " + lastCommit.Id + " > :" + n                                                                  // Second line
 			message += "```" + MessageEncode(lastCommit.Message) + "```"                                                                                     // Third line (last commit message)
+		}
+		if Verbose {
+			l.Debug("message =", message)
 		}
 		SendWorkchatMessage(j.Repository.Name, message)
 	}
@@ -535,7 +543,7 @@ func main() {
 	l.AddTransport(logo.Console).AddColor(logo.ConsoleColor) // Configure Logger
 	l.EnableAllLevels()                                      // Configure Logger
 	LoadConf()                                               // Load configuration
-	SendWorkchatMessage(BotChannel, BotStartMessage)       // Slack notification
+	// SendWorkchatMessage(BotChannel, BotStartMessage)       // Slack notification
 	l.Info(BotStartMessage)                                  // Logging
 	go http.ListenAndServe(":8100", &PushServ{})             // Run HTTP server for push hook
 	go http.ListenAndServe(":8200", &MergeServ{})            // Run HTTP server for merge request hook
