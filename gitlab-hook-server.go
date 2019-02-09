@@ -45,7 +45,7 @@ var (
 
 	// Misc
 	currentBuildID float64 = 0      // Current build ID
-	n              string  = "%5Cn" // Encoded line return
+	n              string  = " " // Encoded line return
 )
 
 /*
@@ -401,11 +401,11 @@ func (s *PushServ) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			message += commitCount + "commits :" + n // Second line
 			for i := range j.Commits {
 				c := j.Commits[i]
-				message += "<" + c.Url + "|" + c.Id[0:7] + ">: " + "_" + MessageEncode(c.Message) + "_" + n
+				message += "< " + c.Url + " | " + c.Id[0:7] + " >: " + "_" + MessageEncode(c.Message) + "_" + n
 			}
 		} else {
 			message += "[PUSH] " + n + "Push on *" + j.Repository.Name + "* by *" + j.User_name + "* at *" + dateString + "* on branch *" + j.Ref + "*:" + n // First line
-			message += "Last commit : <" + lastCommit.Url + "|" + lastCommit.Id + "> :" + n                                                                  // Second line
+			message += "Last commit : < " + lastCommit.Url + " | " + lastCommit.Id + " > :" + n                                                                  // Second line
 			message += "```" + MessageEncode(lastCommit.Message) + "```"                                                                                     // Third line (last commit message)
 		}
 		SendWorkchatMessage(j.Repository.Name, message)
