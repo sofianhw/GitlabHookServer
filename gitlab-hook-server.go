@@ -208,9 +208,9 @@ func MessageEncode(origin string) string {
 	for _, e := range strings.Split(origin, "") {
 		switch e {
 		case "\n":
-			result += "%5Cn"
+			result += " "
 		case "+":
-			result += "%2B"
+			result += " "
 		case "\"":
 			result += "''"
 		case "&":
