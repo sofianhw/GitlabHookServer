@@ -45,7 +45,7 @@ var (
 
 	// Misc
 	currentBuildID float64 = 0      // Current build ID
-	n              string  = " " // Encoded line return
+	n              string  = "\n" // Encoded line return
 )
 
 /*
